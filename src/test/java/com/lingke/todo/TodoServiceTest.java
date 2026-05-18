@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,7 +31,7 @@ class TodoServiceTest {
 
     @Test
     void shouldAddTodo() {
-        Todo todo = todoService.add("Learn Spring Boot");
+        Todo todo = todoService.add("Learn Spring Boot", null, LocalDate.now());
         assertNotNull(todo.getId());
         assertEquals("Learn Spring Boot", todo.getTitle());
         assertFalse(todo.isCompleted());
@@ -38,8 +39,8 @@ class TodoServiceTest {
 
     @Test
     void shouldFindAllOrderByCreatedAtDesc() {
-        todoService.add("First");
-        todoService.add("Second");
+        todoService.add("First", null, LocalDate.now());
+        todoService.add("Second", null, LocalDate.now());
         List<Todo> todos = todoService.findAll();
         assertEquals(2, todos.size());
         assertEquals("Second", todos.get(0).getTitle());
@@ -47,7 +48,7 @@ class TodoServiceTest {
 
     @Test
     void shouldToggleComplete() {
-        Todo todo = todoService.add("Test toggle");
+        Todo todo = todoService.add("Test toggle", null, LocalDate.now());
         assertFalse(todo.isCompleted());
 
         todoService.toggleComplete(todo.getId());
@@ -57,7 +58,7 @@ class TodoServiceTest {
 
     @Test
     void shouldDelete() {
-        Todo todo = todoService.add("To be deleted");
+        Todo todo = todoService.add("To be deleted", null, LocalDate.now());
         todoService.delete(todo.getId());
         assertTrue(todoRepository.findById(todo.getId()).isEmpty());
     }

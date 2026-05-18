@@ -50,13 +50,13 @@
 </head>
 <body>
     <nav class="nav">
-        <a href="/">Todo</a>
-        <a href="/cards" class="active">密码管理</a>
+        <a th:href="@{/}">Todo</a>
+        <a th:href="@{/cards}" class="active">密码管理</a>
     </nav>
 
     <h1>密码管理</h1>
 
-    <form class="add-card-form" action="/cards/add" method="post">
+    <form class="add-card-form" th:action="@{/cards/add}" method="post">
         <input type="text" name="name" placeholder="新建分类（如：社交、工作、银行）" required>
         <button type="submit">添加分类</button>
     </form>
