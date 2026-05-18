@@ -48,3 +48,83 @@
         .edit-form-row button { padding: 4px 10px; }
     </style>
 </head>
+<body>
+    <nav class="nav">
+        <a href="/">Todo</a>
+        <a href="/cards" class="active">密码管理</a>
+    </nav>
+
+    <h1>密码管理</h1>
+
+    <form class="add-card-form" action="/cards/add" method="post">
+        <input type="text" name="name" placeholder="新建分类（如：社交、工作、银行）" required>
+        <button type="submit">添加分类</button>
+    </form>
+
+    <div class="card-grid">
+        <div class="card" th:each="card : ${cards}">
+            <div class="card-header">
+                <span class="card-name" th:text="${card.name}"></span>
+                <div class="card-actions">
+                    <form th:action="@{/cards/update/{id}(id=${card.id})}" method="post" style="display:inline-flex; gap:4px; align-items:center;">
+                        <input class="card-edit-input" type="text" name="name" th:value="${card.name}" required>
+                        <button class="btn btn-edit" type="submit">改名</button>
+                    </form>
+                    <form th:action="@{/cards/delete/{id}(id=${card.id})}" method="post" style="display:inline">
+                        <button class="btn btn-delete" type="submit" onclick="return confirm('删除此分类及所有条目？')">删除</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="item-table" th:if="${!card.items.isEmpty()}">
+                    <thead>
+                        <tr><th>网址</th><th>账号</th><th>密码</th><th>备注</th><th>操作</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${card.items}">
+                            <td><a th:href="${item.url}" th:text="${item.url}" target="_blank" style="color:#4a90d9;text-decoration:none;"></a></td>
+                            <td th:text="${item.account}"></td>
+                            <td>
+                                <div class="password-cell">
+                                    <span class="password-text" th:data-pw="${item.password}">••••••</span>
+                                    <button class="btn-show" onclick="togglePw(this)">显示</button>
+                                </div>
+                            </td>
+                            <td th:text="${item.remark}"></td>
+                            <td class="item-actions">
+                                <form th:action="@{/cards/items/delete/{id}(id=${item.id})}" method="post">
+                                    <button class="btn btn-delete" type="submit">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="empty-hint" th:if="${card.items.isEmpty()}">暂无条目，添加第一条吧</p>
+                <div class="add-item-form">
+                    <form class="add-item-row" th:action="@{/cards/{cardId}/items/add(cardId=${card.id})}" method="post">
+                        <input type="text" name="url" placeholder="网址">
+                        <input type="text" name="account" placeholder="账号" required>
+                        <input type="text" name="password" placeholder="密码" required>
+                        <input type="text" name="remark" placeholder="备注">
+                        <button type="submit">添加</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function togglePw(btn) {
+        var span = btn.previousElementSibling;
+        if (span.textContent === '••••••') {
+            span.textContent = span.getAttribute('data-pw');
+            btn.textContent = '隐藏';
+        } else {
+            span.textContent = '••••••';
+            btn.textContent = '显示';
+        }
+    }
+    </script>
+</body>
+</html>
+
