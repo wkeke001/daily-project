@@ -40,7 +40,7 @@
         .btn-sm-delete:hover { background: #ffcdd2; }
 
         .card-body { padding: 0 18px 14px; }
-        .todo-item { display: block; position: relative; padding: 8px 0; padding-right: 80px; border-bottom: 1px solid #f5f5f5; }
+        .todo-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
         .todo-item:last-child { border-bottom: none; }
         .todo-item.completed .todo-title { text-decoration: line-through; color: #bbb; }
 
@@ -63,8 +63,9 @@
         .add-todo-form button { padding: 7px 14px; background: #4a90d9; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
         .add-todo-form button:hover { background: #3a7bc8; }
 
-        .todo-main { display: flex; align-items: center; gap: 10px; }
-        .todo-remark { font-size: 12px; color: #999; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+        .todo-main { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+        .todo-remark { font-size: 12px; color: #999; white-space: nowrap; flex-shrink: 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+        .floating-tooltip { position: fixed; background: #333; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; white-space: normal; word-break: break-all; max-width: 300px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.25); line-height: 1.5; display: none; user-select: text; cursor: text; }
 
         .empty-card { color: #ccc; font-size: 13px; text-align: center; padding: 16px 0; }
         .edit-inline { display: flex; gap: 4px; align-items: center; }
@@ -134,7 +135,7 @@
                             </form>
                         </div>
                     </div>
-                    <div class="todo-remark" th:if="${todo.remark != null and !todo.remark.isEmpty()}" th:text="${todo.remark}"></div>
+                    <div class="todo-remark" th:if="${todo.remark != null and !todo.remark.isEmpty()}" th:text="${todo.remark}" th:data-full="${todo.remark}"></div>
                 </div>
                 <form class="add-todo-form" th:action="@{/add}" method="post">
                     <input type="hidden" name="categoryId" th:value="${entry.key.id}">
@@ -146,6 +147,9 @@
             </div>
         </div>
     </div>
+
+    <div class="floating-tooltip" id="floatingTip"></div>
+
     <script>
     function editTodo(btn) {
         var id = btn.getAttribute('data-id');
@@ -163,6 +167,37 @@
             + '<button type="button" onclick="location.reload()" style="padding:5px 12px;background:#eee;color:#666;border:none;border-radius:5px;cursor:pointer;font-size:12px;">取消</button>'
             + '</form>';
     }
+
+    (function() {
+        var tip = document.getElementById('floatingTip');
+        var hideTimer = null;
+        var remarks = document.querySelectorAll('.todo-remark[data-full]');
+
+        function showTip(el) {
+            var text = el.getAttribute('data-full');
+            if (!text || el.scrollWidth <= el.clientWidth) return;
+            clearTimeout(hideTimer);
+            tip.textContent = text;
+            tip.style.display = 'block';
+            var rect = el.getBoundingClientRect();
+            tip.style.left = rect.left + 'px';
+            tip.style.top = (rect.top - tip.offsetHeight - 8) + 'px';
+        }
+
+        function hideTip() {
+            hideTimer = setTimeout(function() {
+                tip.style.display = 'none';
+            }, 200);
+        }
+
+        remarks.forEach(function(el) {
+            el.addEventListener('mouseenter', function() { showTip(el); });
+            el.addEventListener('mouseleave', hideTip);
+        });
+
+        tip.addEventListener('mouseenter', function() { clearTimeout(hideTimer); });
+        tip.addEventListener('mouseleave', hideTip);
+    })();
     </script>
 </body>
 </html>
