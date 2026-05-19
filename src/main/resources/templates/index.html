@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="ctx" th:content="@{/}">
     <title>Lingke Todo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,7 +40,7 @@
         .btn-sm-delete:hover { background: #ffcdd2; }
 
         .card-body { padding: 0 18px 14px; }
-        .todo-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
+        .todo-item { display: block; position: relative; padding: 8px 0; padding-right: 80px; border-bottom: 1px solid #f5f5f5; }
         .todo-item:last-child { border-bottom: none; }
         .todo-item.completed .todo-title { text-decoration: line-through; color: #bbb; }
 
@@ -54,13 +55,16 @@
         .todo-item:hover .todo-actions { opacity: 1; }
         .todo-actions form { display: inline; }
         .todo-actions .btn-xs { padding: 2px 8px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
-        .btn-xs-edit { background: #fff3e0; color: #e65100; }
+        .btn-xs-edit { background: #e3f2fd; color: #1565c0; }
         .btn-xs-delete { background: #ffebee; color: #c62828; }
 
         .add-todo-form { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
         .add-todo-form input { flex: 1; padding: 7px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; }
         .add-todo-form button { padding: 7px 14px; background: #4a90d9; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
         .add-todo-form button:hover { background: #3a7bc8; }
+
+        .todo-main { display: flex; align-items: center; gap: 10px; }
+        .todo-remark { font-size: 12px; color: #999; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
 
         .empty-card { color: #ccc; font-size: 13px; text-align: center; padding: 16px 0; }
         .edit-inline { display: flex; gap: 4px; align-items: center; }
@@ -69,7 +73,7 @@
 </head>
 <body>
     <nav class="nav">
-        <a th:href="@{/}" class="active">Todo</a>
+        <a th:href="@{/}" class="active">今日清单</a>
         <a th:href="@{/cards}">密码管理</a>
     </nav>
 
@@ -115,27 +119,50 @@
             </div>
             <div class="card-body">
                 <div th:if="${entry.value.isEmpty()}" class="empty-card">暂无待办</div>
-                <div th:each="todo : ${entry.value}" th:classappend="${todo.completed} ? 'todo-item completed' : 'todo-item'">
-                    <form class="checkbox-form" th:action="@{/toggle/{id}(id=${todo.id})}" method="post">
-                        <input type="hidden" name="date" th:value="${currentDate}">
-                        <button type="submit" th:classappend="${todo.completed} ? 'checkbox-btn checked' : 'checkbox-btn'"></button>
-                    </form>
-                    <span class="todo-title" th:text="${todo.title}"></span>
-                    <div class="todo-actions">
-                        <form th:action="@{/delete/{id}(id=${todo.id})}" method="post">
+                <div th:each="todo : ${entry.value}" th:classappend="${todo.completed} ? 'todo-item completed' : 'todo-item'" th:title="'创建于 ' + ${#temporals.format(todo.createdAt, 'yyyy-MM-dd HH:mm:ss')}">
+                    <div class="todo-main">
+                        <form class="checkbox-form" th:action="@{/toggle/{id}(id=${todo.id})}" method="post">
                             <input type="hidden" name="date" th:value="${currentDate}">
-                            <button class="btn-xs btn-xs-delete" type="submit">删除</button>
+                            <button type="submit" th:classappend="${todo.completed} ? 'checkbox-btn checked' : 'checkbox-btn'"></button>
                         </form>
+                        <span class="todo-title" th:text="${todo.title}"></span>
+                        <div class="todo-actions">
+                            <button class="btn-xs btn-xs-edit" onclick="editTodo(this)" th:data-id="${todo.id}" th:data-title="${todo.title}" th:data-remark="${todo.remark}">编辑</button>
+                            <form th:action="@{/delete/{id}(id=${todo.id})}" method="post" style="display:inline">
+                                <input type="hidden" name="date" th:value="${currentDate}">
+                                <button class="btn-xs btn-xs-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                            </form>
+                        </div>
                     </div>
+                    <div class="todo-remark" th:if="${todo.remark != null and !todo.remark.isEmpty()}" th:text="${todo.remark}"></div>
                 </div>
                 <form class="add-todo-form" th:action="@{/add}" method="post">
                     <input type="hidden" name="categoryId" th:value="${entry.key.id}">
                     <input type="hidden" name="dueDate" th:value="${currentDate}">
                     <input type="text" name="title" placeholder="添加待办..." required>
+                    <input type="text" name="remark" placeholder="备注（可选）">
                     <button type="submit">添加</button>
                 </form>
             </div>
         </div>
     </div>
+    <script>
+    function editTodo(btn) {
+        var id = btn.getAttribute('data-id');
+        var title = btn.getAttribute('data-title');
+        var remark = btn.getAttribute('data-remark') || '';
+        var item = btn.closest('.todo-item');
+        var ctx = (document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
+        var dateInput = item.querySelector('input[name=date]');
+        var date = dateInput ? dateInput.value : '';
+        item.innerHTML = '<form style="display:flex;gap:6px;flex:1;align-items:center;flex-wrap:wrap;" action="' + ctx + '/update/' + id + '" method="post">'
+            + '<input type="hidden" name="date" value="' + date + '">'
+            + '<input type="text" name="title" value="' + title.replace(/"/g,'&quot;') + '" required style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:13px;min-width:120px;">'
+            + '<input type="text" name="remark" value="' + remark.replace(/"/g,'&quot;') + '" placeholder="备注（可选）" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:13px;min-width:80px;">'
+            + '<button type="submit" style="padding:5px 12px;background:#4a90d9;color:white;border:none;border-radius:5px;cursor:pointer;font-size:12px;">保存</button>'
+            + '<button type="button" onclick="location.reload()" style="padding:5px 12px;background:#eee;color:#666;border:none;border-radius:5px;cursor:pointer;font-size:12px;">取消</button>'
+            + '</form>';
+    }
+    </script>
 </body>
 </html>

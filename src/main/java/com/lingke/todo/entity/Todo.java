@@ -27,6 +27,8 @@ public class Todo {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    private String remark;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -52,4 +54,7 @@ public class Todo {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getRemark() { return remark; }
+    public void setRemark(String remark) { this.remark = remark; }
 }

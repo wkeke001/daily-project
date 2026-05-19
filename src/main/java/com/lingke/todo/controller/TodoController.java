@@ -43,17 +43,19 @@ public class TodoController {
 
     @PostMapping("/add")
     public String add(@RequestParam String title,
+                      @RequestParam(required = false) String remark,
                       @RequestParam Long categoryId,
                       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate) {
-        todoService.add(title, categoryId, dueDate);
+        todoService.add(title, remark, categoryId, dueDate);
         return "redirect:/?date=" + dueDate;
     }
 
     @PostMapping("/update/{id}")
     public String update(@PathVariable Long id,
                          @RequestParam String title,
+                         @RequestParam(required = false) String remark,
                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        todoService.update(id, title);
+        todoService.update(id, title, remark);
         return "redirect:/?date=" + date;
     }
 

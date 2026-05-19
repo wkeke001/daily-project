@@ -32,9 +32,10 @@ public class TodoService {
         return todoRepository.findByDueDateOrderByCreatedAtAsc(date);
     }
 
-    public Todo add(String title, Long categoryId, LocalDate dueDate) {
+    public Todo add(String title, String remark, Long categoryId, LocalDate dueDate) {
         Todo todo = new Todo();
         todo.setTitle(title);
+        todo.setRemark(remark);
         todo.setDueDate(dueDate);
         if (categoryId != null) {
             categoryRepository.findById(categoryId).ifPresent(todo::setCategory);
@@ -42,9 +43,10 @@ public class TodoService {
         return todoRepository.save(todo);
     }
 
-    public void update(Long id, String title) {
+    public void update(Long id, String title, String remark) {
         todoRepository.findById(id).ifPresent(todo -> {
             todo.setTitle(title);
+            todo.setRemark(remark);
             todoRepository.save(todo);
         });
     }

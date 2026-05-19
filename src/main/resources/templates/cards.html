@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="ctx" th:content="@{/}">
     <title>密码管理 - Lingke</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -46,6 +47,11 @@
         .btn-show { background: none; border: none; color: #999; cursor: pointer; font-size: 11px; padding: 2px 4px; }
         .btn-show:hover { color: #333; }
         .item-actions { display: flex; gap: 4px; }
+        .btn-edit { background: #e3f2fd; color: #1565c0; }
+        .edit-row td { background: #fafafa; }
+        .edit-row input { padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 100%; }
+        .edit-row .item-actions { gap: 4px; }
+        .btn-save { background: #e8f5e9; color: #2e7d32; }
         .add-item-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
         .add-item-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
         .add-item-row input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; flex: 1; min-width: 80px; }
@@ -58,7 +64,7 @@
 </head>
 <body>
     <nav class="nav">
-        <a th:href="@{/}">Todo</a>
+        <a th:href="@{/}">今日清单</a>
         <a th:href="@{/cards}" class="active">密码管理</a>
     </nav>
 
@@ -89,7 +95,7 @@
                         <tr><th>网址</th><th>账号</th><th>密码</th><th>备注</th><th>操作</th></tr>
                     </thead>
                     <tbody>
-                        <tr th:each="item : ${card.items}">
+                        <tr th:each="item : ${card.items}" th:id="'row-' + ${item.id}">
                             <td>
                                 <span class="cell-text" th:data-full="${item.url}"><a th:href="${item.url}" th:text="${item.url}" target="_blank" style="color:#4a90d9;text-decoration:none;"></a></span>
                             </td>
@@ -106,7 +112,8 @@
                                 <span class="cell-text" th:data-full="${item.remark}" th:text="${item.remark}"></span>
                             </td>
                             <td class="no-truncate item-actions">
-                                <form th:action="@{/cards/items/delete/{id}(id=${item.id})}" method="post">
+                                <button class="btn btn-edit" onclick="editItem(this)" th:data-id="${item.id}" th:data-url="${item.url}" th:data-account="${item.account}" th:data-password="${item.password}" th:data-remark="${item.remark}">编辑</button>
+                                <form th:action="@{/cards/items/delete/{id}(id=${item.id})}" method="post" style="display:inline">
                                     <button class="btn btn-delete" type="submit" onclick="return confirm('确认删除此条目？')">删除</button>
                                 </form>
                             </td>
@@ -139,6 +146,36 @@
             span.textContent = '••••••';
             btn.textContent = '显示';
         }
+    }
+
+    function editItem(btn) {
+        var id = btn.getAttribute('data-id');
+        var url = btn.getAttribute('data-url') || '';
+        var account = btn.getAttribute('data-account') || '';
+        var password = btn.getAttribute('data-password') || '';
+        var remark = btn.getAttribute('data-remark') || '';
+        var tr = btn.closest('tr');
+        var contextPath = (document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
+        tr.classList.add('edit-row');
+        tr.innerHTML = '<td><input name="url" value="' + url.replace(/"/g,'&quot;') + '"></td>'
+            + '<td><input name="account" value="' + account.replace(/"/g,'&quot;') + '" required></td>'
+            + '<td><input name="password" value="' + password.replace(/"/g,'&quot;') + '" required></td>'
+            + '<td><input name="remark" value="' + remark.replace(/"/g,'&quot;') + '"></td>'
+            + '<td class="no-truncate item-actions">'
+            + '<form action="' + contextPath + '/cards/items/update/' + id + '" method="post" style="display:inline-flex;gap:4px;">'
+            + '<input type="hidden" name="url" value="' + url.replace(/"/g,'&quot;') + '" class="h-url">'
+            + '<input type="hidden" name="account" value="' + account.replace(/"/g,'&quot;') + '" class="h-account">'
+            + '<input type="hidden" name="password" value="' + password.replace(/"/g,'&quot;') + '" class="h-pw">'
+            + '<input type="hidden" name="remark" value="' + remark.replace(/"/g,'&quot;') + '" class="h-remark">'
+            + '<button class="btn btn-save" type="submit">保存</button>'
+            + '<button class="btn btn-delete" type="button" onclick="location.reload()">取消</button>'
+            + '</form></td>';
+        var inputs = tr.querySelectorAll('td input[name]');
+        var hiddens = tr.querySelectorAll('form input[type=hidden]');
+        inputs[0].addEventListener('input', function() { hiddens[0].value = this.value; });
+        inputs[1].addEventListener('input', function() { hiddens[1].value = this.value; });
+        inputs[2].addEventListener('input', function() { hiddens[2].value = this.value; });
+        inputs[3].addEventListener('input', function() { hiddens[3].value = this.value; });
     }
 
     (function() {
