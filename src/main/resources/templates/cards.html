@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="ctx" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_parameterName" th:content="${_csrf.parameterName}">
     <title>密码管理 - Lingke</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -66,6 +68,12 @@
     <nav class="nav">
         <a th:href="@{/}">今日清单</a>
         <a th:href="@{/cards}" class="active">密码管理</a>
+        <span style="margin-left:auto;font-size:13px;color:#666;display:flex;align-items:center;gap:8px;">
+            <span sec:authentication="name"></span>
+            <form th:action="@{/logout}" method="post" style="display:inline;margin:0;">
+                <button type="submit" style="padding:4px 10px;background:#ffebee;color:#c62828;border:none;border-radius:4px;cursor:pointer;font-size:12px;">退出</button>
+            </form>
+        </span>
     </nav>
 
     <h1>密码管理</h1>
@@ -156,6 +164,8 @@
         var remark = btn.getAttribute('data-remark') || '';
         var tr = btn.closest('tr');
         var contextPath = (document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
+        var csrfToken = document.querySelector('meta[name=_csrf]').content;
+        var csrfParam = document.querySelector('meta[name=_csrf_parameterName]').content;
         tr.classList.add('edit-row');
         tr.innerHTML = '<td><input name="url" value="' + url.replace(/"/g,'&quot;') + '"></td>'
             + '<td><input name="account" value="' + account.replace(/"/g,'&quot;') + '" required></td>'
@@ -163,6 +173,7 @@
             + '<td><input name="remark" value="' + remark.replace(/"/g,'&quot;') + '"></td>'
             + '<td class="no-truncate item-actions">'
             + '<form action="' + contextPath + '/cards/items/update/' + id + '" method="post" style="display:inline-flex;gap:4px;">'
+            + '<input type="hidden" name="' + csrfParam + '" value="' + csrfToken + '">'
             + '<input type="hidden" name="url" value="' + url.replace(/"/g,'&quot;') + '" class="h-url">'
             + '<input type="hidden" name="account" value="' + account.replace(/"/g,'&quot;') + '" class="h-account">'
             + '<input type="hidden" name="password" value="' + password.replace(/"/g,'&quot;') + '" class="h-pw">'
@@ -171,7 +182,7 @@
             + '<button class="btn btn-delete" type="button" onclick="location.reload()">取消</button>'
             + '</form></td>';
         var inputs = tr.querySelectorAll('td input[name]');
-        var hiddens = tr.querySelectorAll('form input[type=hidden]');
+        var hiddens = tr.querySelectorAll('form input[type=hidden]:not([name=' + csrfParam + '])');
         inputs[0].addEventListener('input', function() { hiddens[0].value = this.value; });
         inputs[1].addEventListener('input', function() { hiddens[1].value = this.value; });
         inputs[2].addEventListener('input', function() { hiddens[2].value = this.value; });

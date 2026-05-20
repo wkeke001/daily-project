@@ -29,6 +29,9 @@ public class Todo {
 
     private String remark;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -57,4 +60,7 @@ public class Todo {
 
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }

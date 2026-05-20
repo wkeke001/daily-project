@@ -4,6 +4,7 @@ import com.lingke.todo.entity.Todo;
 import com.lingke.todo.entity.TodoCategory;
 import com.lingke.todo.repository.TodoCategoryRepository;
 import com.lingke.todo.repository.TodoRepository;
+import com.lingke.todo.security.SecurityUtil;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,31 +21,27 @@ public class TodoService {
         this.categoryRepository = categoryRepository;
     }
 
-    public List<Todo> findAll() {
-        return todoRepository.findAllByOrderByCreatedAtDesc();
-    }
-
     public List<Todo> findByDateAndCategory(LocalDate date, Long categoryId) {
-        return todoRepository.findByDueDateAndCategoryIdOrderByCreatedAtAsc(date, categoryId);
-    }
-
-    public List<Todo> findByDate(LocalDate date) {
-        return todoRepository.findByDueDateOrderByCreatedAtAsc(date);
+        Long userId = SecurityUtil.getCurrentUserId();
+        return todoRepository.findByDueDateAndCategoryIdAndUserIdOrderByCreatedAtAsc(date, categoryId, userId);
     }
 
     public Todo add(String title, String remark, Long categoryId, LocalDate dueDate) {
+        Long userId = SecurityUtil.getCurrentUserId();
         Todo todo = new Todo();
         todo.setTitle(title);
         todo.setRemark(remark);
         todo.setDueDate(dueDate);
+        todo.setUserId(userId);
         if (categoryId != null) {
-            categoryRepository.findById(categoryId).ifPresent(todo::setCategory);
+            categoryRepository.findByIdAndUserId(categoryId, userId).ifPresent(todo::setCategory);
         }
         return todoRepository.save(todo);
     }
 
     public void update(Long id, String title, String remark) {
-        todoRepository.findById(id).ifPresent(todo -> {
+        Long userId = SecurityUtil.getCurrentUserId();
+        todoRepository.findByIdAndUserId(id, userId).ifPresent(todo -> {
             todo.setTitle(title);
             todo.setRemark(remark);
             todoRepository.save(todo);
@@ -52,29 +49,37 @@ public class TodoService {
     }
 
     public void toggleComplete(Long id) {
-        todoRepository.findById(id).ifPresent(todo -> {
+        Long userId = SecurityUtil.getCurrentUserId();
+        todoRepository.findByIdAndUserId(id, userId).ifPresent(todo -> {
             todo.setCompleted(!todo.isCompleted());
             todoRepository.save(todo);
         });
     }
 
     public void delete(Long id) {
-        todoRepository.deleteById(id);
+        Long userId = SecurityUtil.getCurrentUserId();
+        todoRepository.findByIdAndUserId(id, userId).ifPresent(todo ->
+            todoRepository.delete(todo)
+        );
     }
 
     public List<TodoCategory> findAllCategories() {
-        return categoryRepository.findAllByOrderByCreatedAtAsc();
+        Long userId = SecurityUtil.getCurrentUserId();
+        return categoryRepository.findAllByUserIdOrderByCreatedAtAsc(userId);
     }
 
     public TodoCategory addCategory(String name, String color) {
+        Long userId = SecurityUtil.getCurrentUserId();
         TodoCategory category = new TodoCategory();
         category.setName(name);
         category.setColor(color);
+        category.setUserId(userId);
         return categoryRepository.save(category);
     }
 
     public void updateCategory(Long id, String name, String color) {
-        categoryRepository.findById(id).ifPresent(cat -> {
+        Long userId = SecurityUtil.getCurrentUserId();
+        categoryRepository.findByIdAndUserId(id, userId).ifPresent(cat -> {
             cat.setName(name);
             if (color != null) cat.setColor(color);
             categoryRepository.save(cat);
@@ -82,6 +87,9 @@ public class TodoService {
     }
 
     public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
+        Long userId = SecurityUtil.getCurrentUserId();
+        categoryRepository.findByIdAndUserId(id, userId).ifPresent(cat ->
+            categoryRepository.delete(cat)
+        );
     }
 }

@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="ctx" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_parameterName" th:content="${_csrf.parameterName}">
     <title>Lingke Todo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -76,6 +78,12 @@
     <nav class="nav">
         <a th:href="@{/}" class="active">今日清单</a>
         <a th:href="@{/cards}">密码管理</a>
+        <span style="margin-left:auto;font-size:13px;color:#666;display:flex;align-items:center;gap:8px;">
+            <span sec:authentication="name"></span>
+            <form th:action="@{/logout}" method="post" style="display:inline;margin:0;">
+                <button type="submit" style="padding:4px 10px;background:#ffebee;color:#c62828;border:none;border-radius:4px;cursor:pointer;font-size:12px;">退出</button>
+            </form>
+        </span>
     </nav>
 
     <div class="date-bar">
@@ -157,9 +165,12 @@
         var remark = btn.getAttribute('data-remark') || '';
         var item = btn.closest('.todo-item');
         var ctx = (document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
+        var csrfToken = document.querySelector('meta[name=_csrf]').content;
+        var csrfParam = document.querySelector('meta[name=_csrf_parameterName]').content;
         var dateInput = item.querySelector('input[name=date]');
         var date = dateInput ? dateInput.value : '';
         item.innerHTML = '<form style="display:flex;gap:6px;flex:1;align-items:center;flex-wrap:wrap;" action="' + ctx + '/update/' + id + '" method="post">'
+            + '<input type="hidden" name="' + csrfParam + '" value="' + csrfToken + '">'
             + '<input type="hidden" name="date" value="' + date + '">'
             + '<input type="text" name="title" value="' + title.replace(/"/g,'&quot;') + '" required style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:13px;min-width:120px;">'
             + '<input type="text" name="remark" value="' + remark.replace(/"/g,'&quot;') + '" placeholder="备注（可选）" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:13px;min-width:80px;">'

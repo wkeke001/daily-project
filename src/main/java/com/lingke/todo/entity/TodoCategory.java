@@ -18,6 +18,9 @@ public class TodoCategory {
 
     private String color;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -43,4 +46,7 @@ public class TodoCategory {
 
     public List<Todo> getTodos() { return todos; }
     public void setTodos(List<Todo> todos) { this.todos = todos; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }

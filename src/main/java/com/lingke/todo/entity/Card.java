@@ -16,6 +16,9 @@ public class Card {
     @Column(nullable = false)
     private String name;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -38,4 +41,7 @@ public class Card {
 
     public List<CardItem> getItems() { return items; }
     public void setItems(List<CardItem> items) { this.items = items; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }
