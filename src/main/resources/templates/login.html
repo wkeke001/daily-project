@@ -20,6 +20,11 @@
         .link-row { text-align: center; margin-top: 16px; font-size: 13px; }
         .link-row a { color: #4a90d9; text-decoration: none; }
         .link-row a:hover { text-decoration: underline; }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+            .login-card { padding: 28px 20px; }
+        }
     </style>
 </head>
 <body>
@@ -42,6 +47,16 @@
         <div class="link-row">
             没有账号？<a th:href="@{/register}">注册</a>
         </div>
+        <div style="text-align:center;margin-top:12px;">
+            <button type="button" onclick="testLogin()" style="padding:6px 14px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:4px;cursor:pointer;font-size:12px;">测试登录</button>
+        </div>
     </div>
+    <script>
+    function testLogin() {
+        document.querySelector('input[name=username]').value = 'wangke';
+        document.querySelector('input[name=password]').value = 'wangke';
+        document.querySelector('form').submit();
+    }
+    </script>
 </body>
 </html>

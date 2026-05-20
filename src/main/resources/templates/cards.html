@@ -34,20 +34,27 @@
         .card-body { padding: 12px 20px 16px; }
         .item-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
         .item-table th { text-align: left; padding: 6px 8px; color: #999; font-weight: 500; border-bottom: 1px solid #f0f0f0; }
-        .item-table th:nth-child(1) { width: 28%; }
+        .item-table th:nth-child(1) { width: 25%; }
         .item-table th:nth-child(2) { width: 20%; }
-        .item-table th:nth-child(3) { width: 18%; }
-        .item-table th:nth-child(4) { width: 22%; }
-        .item-table th:nth-child(5) { width: 12%; }
+        .item-table th:nth-child(3) { width: 22%; }
+        .item-table th:nth-child(4) { width: 18%; }
+        .item-table th:nth-child(5) { width: 15%; }
         .item-table td { padding: 8px; border-bottom: 1px solid #f8f8f8; vertical-align: middle; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .item-table td .cell-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; }
         .item-table td.no-truncate { overflow: visible; white-space: normal; max-width: none; }
         .floating-tooltip { position: fixed; background: #333; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; white-space: normal; word-break: break-all; max-width: 300px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.25); line-height: 1.5; display: none; user-select: text; cursor: text; }
+        .floating-tooltip .tip-content { margin-bottom: 6px; }
+        .floating-tooltip .btn-copy { display: inline-block; padding: 2px 8px; background: #4a90d9; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; }
+        .floating-tooltip .btn-copy:hover { background: #3a7bc8; }
+        .floating-tooltip .btn-copy.copied { background: #2e7d32; }
         .item-table tr:last-child td { border-bottom: none; }
         .password-cell { display: flex; align-items: center; gap: 4px; }
         .password-text { font-family: monospace; }
         .btn-show { background: none; border: none; color: #999; cursor: pointer; font-size: 11px; padding: 2px 4px; }
         .btn-show:hover { color: #333; }
+        .btn-copy-inline { background: none; border: none; color: #999; cursor: pointer; font-size: 11px; padding: 2px 4px; }
+        .btn-copy-inline:hover { color: #4a90d9; }
+        .btn-copy-inline.copied { color: #2e7d32; }
         .item-actions { display: flex; gap: 4px; }
         .btn-edit { background: #e3f2fd; color: #1565c0; }
         .edit-row td { background: #fafafa; }
@@ -62,6 +69,35 @@
         .edit-form-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
         .edit-form-row input { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; flex: 1; min-width: 60px; }
         .edit-form-row button { padding: 4px 10px; }
+
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .nav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            h1 { font-size: 20px; }
+            .add-card-form { flex-direction: column; }
+            .add-card-form input, .add-card-form button { width: 100%; }
+            .card-grid { grid-template-columns: 1fr; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+            .card-actions { width: 100%; }
+            .card-actions form { flex: 1; }
+            .card-edit-input { width: 100% !important; }
+            .card-body { padding: 10px 14px 14px; }
+            .item-table { display: block; }
+            .item-table thead { display: none; }
+            .item-table tbody { display: block; }
+            .item-table tr { display: flex; flex-direction: column; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+            .item-table tr:last-child { border-bottom: none; }
+            .item-table td { display: flex; padding: 3px 0; max-width: none; overflow: visible; white-space: normal; }
+            .item-table td::before { content: attr(data-label); font-size: 12px; color: #999; min-width: 50px; margin-right: 8px; }
+            .item-table td .cell-text { white-space: normal; overflow: visible; }
+            .item-table td.no-truncate { white-space: normal; }
+            .password-cell { flex-wrap: wrap; }
+            .item-actions { justify-content: flex-start; padding-top: 4px; }
+            .add-item-row { flex-direction: column; }
+            .add-item-row input { width: 100%; min-width: unset; }
+            .add-item-row button { width: 100%; }
+            .edit-row input { font-size: 13px; }
+        }
     </style>
 </head>
 <body>
@@ -104,22 +140,24 @@
                     </thead>
                     <tbody>
                         <tr th:each="item : ${card.items}" th:id="'row-' + ${item.id}">
-                            <td>
+                            <td data-label="网址">
                                 <span class="cell-text" th:data-full="${item.url}"><a th:href="${item.url}" th:text="${item.url}" target="_blank" style="color:#4a90d9;text-decoration:none;"></a></span>
                             </td>
-                            <td>
+                            <td data-label="账号">
                                 <span class="cell-text" th:data-full="${item.account}" th:text="${item.account}"></span>
+                                <button class="btn-copy-inline" onclick="copyText(this)" th:data-copy="${item.account}">复制</button>
                             </td>
-                            <td>
+                            <td data-label="密码" class="no-truncate">
                                 <div class="password-cell">
                                     <span class="password-text" th:data-pw="${item.password}">••••••</span>
                                     <button class="btn-show" onclick="togglePw(this)">显示</button>
+                                    <button class="btn-copy-inline" onclick="copyText(this)" th:data-copy="${item.password}">复制</button>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="备注">
                                 <span class="cell-text" th:data-full="${item.remark}" th:text="${item.remark}"></span>
                             </td>
-                            <td class="no-truncate item-actions">
+                            <td data-label="" class="no-truncate item-actions">
                                 <button class="btn btn-edit" onclick="editItem(this)" th:data-id="${item.id}" th:data-url="${item.url}" th:data-account="${item.account}" th:data-password="${item.password}" th:data-remark="${item.remark}">编辑</button>
                                 <form th:action="@{/cards/items/delete/{id}(id=${item.id})}" method="post" style="display:inline">
                                     <button class="btn btn-delete" type="submit" onclick="return confirm('确认删除此条目？')">删除</button>
@@ -142,9 +180,30 @@
         </div>
     </div>
 
-    <div class="floating-tooltip" id="floatingTip"></div>
+    <div class="floating-tooltip" id="floatingTip">
+        <div class="tip-content"></div>
+        <button class="btn-copy" onclick="copyTipText(this)">复制</button>
+    </div>
 
     <script>
+    function copyText(btn) {
+        var text = btn.getAttribute('data-copy');
+        navigator.clipboard.writeText(text).then(function() {
+            btn.textContent = '已复制';
+            btn.classList.add('copied');
+            setTimeout(function() { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+        });
+    }
+
+    function copyTipText(btn) {
+        var text = btn.parentElement.querySelector('.tip-content').textContent;
+        navigator.clipboard.writeText(text).then(function() {
+            btn.textContent = '已复制';
+            btn.classList.add('copied');
+            setTimeout(function() { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+        });
+    }
+
     function togglePw(btn) {
         var span = btn.previousElementSibling;
         if (span.textContent === '••••••') {
@@ -191,6 +250,7 @@
 
     (function() {
         var tip = document.getElementById('floatingTip');
+        var tipContent = tip.querySelector('.tip-content');
         var hideTimer = null;
         var cells = document.querySelectorAll('.cell-text[data-full]');
 
@@ -198,7 +258,7 @@
             var text = el.getAttribute('data-full');
             if (!text || el.scrollWidth <= el.clientWidth) return;
             clearTimeout(hideTimer);
-            tip.textContent = text;
+            tipContent.textContent = text;
             tip.style.display = 'block';
             var rect = el.getBoundingClientRect();
             tip.style.left = rect.left + 'px';

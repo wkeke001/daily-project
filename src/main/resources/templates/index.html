@@ -72,6 +72,27 @@
         .empty-card { color: #ccc; font-size: 13px; text-align: center; padding: 16px 0; }
         .edit-inline { display: flex; gap: 4px; align-items: center; }
         .edit-inline input { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 80px; }
+
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .nav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            .date-bar { flex-wrap: wrap; gap: 10px; padding: 12px; }
+            .date-text { font-size: 16px; }
+            .add-category-bar { flex-wrap: wrap; gap: 8px; }
+            .add-category-bar input[type="text"] { max-width: none; flex: 1; min-width: 120px; }
+            .add-category-bar select { flex: 1; min-width: 80px; }
+            .add-category-bar button { width: 100%; }
+            .card-grid { grid-template-columns: 1fr; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px 8px; }
+            .card-header-actions { width: 100%; }
+            .todo-actions { opacity: 1; }
+            .todo-item { flex-wrap: wrap; }
+            .todo-remark { max-width: none; white-space: normal; }
+            .add-todo-form { flex-wrap: wrap; }
+            .add-todo-form input { min-width: 0; }
+            .add-todo-form input[name="title"] { flex: 1 1 100%; }
+            .add-todo-form input[name="remark"] { flex: 1; }
+        }
     </style>
 </head>
 <body>
