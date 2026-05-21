@@ -42,6 +42,7 @@
         .item-table td { padding: 8px; border-bottom: 1px solid #f8f8f8; vertical-align: middle; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .item-table td .cell-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; }
         .item-table td.no-truncate { overflow: visible; white-space: normal; max-width: none; }
+        .item-table td.pw-cell { overflow: hidden; white-space: normal; word-break: break-all; }
         .floating-tooltip { position: fixed; background: #333; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; white-space: normal; word-break: break-all; max-width: 300px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.25); line-height: 1.5; display: none; user-select: text; cursor: text; }
         .floating-tooltip .tip-content { margin-bottom: 6px; }
         .floating-tooltip .btn-copy { display: inline-block; padding: 2px 8px; background: #4a90d9; color: #fff; border: none; border-radius: 3px; font-size: 11px; cursor: pointer; }
@@ -147,7 +148,7 @@
                                 <span class="cell-text" th:data-full="${item.account}" th:text="${item.account}"></span>
                                 <button class="btn-copy-inline" onclick="copyText(this)" th:data-copy="${item.account}">复制</button>
                             </td>
-                            <td data-label="密码" class="no-truncate">
+                            <td data-label="密码" class="pw-cell">
                                 <div class="password-cell">
                                     <span class="password-text" th:data-pw="${item.password}">••••••</span>
                                     <button class="btn-show" onclick="togglePw(this)">显示</button>
