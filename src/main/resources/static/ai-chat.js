@@ -1,5 +1,8 @@
 (function() {
     var streaming = false;
+    var ctx = (document.querySelector('meta[name=ctx]') && document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
+    var API_URL = ctx + '/ai/chat';
+    var API_STREAM_URL = ctx + '/ai/chat/stream';
 
     var style = document.createElement('style');
     style.textContent = `
@@ -98,6 +101,16 @@
         return el ? el.textContent.trim() : 'anonymous';
     }
 
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name=_csrf]');
+        return meta ? meta.content : '';
+    }
+
+    function getCsrfHeader() {
+        var meta = document.querySelector('meta[name=_csrf_parameterName]');
+        return meta ? meta.content : '_csrf';
+    }
+
     function addMsg(text, type) {
         var div = document.createElement('div');
         div.className = 'ai-msg ' + type;
@@ -109,12 +122,11 @@
 
     function sendBlocking(query) {
         var loading = addMsg('思考中...', 'bot loading');
-        fetch('http://175.178.44.121/v1/workflows/run', {
+        var headers = { 'Content-Type': 'application/json' };
+        headers['X-CSRF-TOKEN'] = getCsrfToken();
+        fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer app-jUCEC5JnAZuyB1Yy0KFnCGSG',
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 inputs: { query: query },
                 response_mode: 'blocking',
@@ -124,8 +136,12 @@
         .then(function(res) { return res.json(); })
         .then(function(data) {
             messages.removeChild(loading);
-            var answer = data.data && data.data.outputs && data.data.outputs.message || '无回复';
-            addMsg(answer, 'bot');
+            if (data.error) {
+                addMsg('错误: ' + data.error, 'bot');
+            } else {
+                var answer = data.data && data.data.outputs && data.data.outputs.message || '无回复';
+                addMsg(answer, 'bot');
+            }
         })
         .catch(function(err) {
             messages.removeChild(loading);
@@ -136,12 +152,11 @@
 
     function sendStreaming(query) {
         var botDiv = addMsg('', 'bot');
-        fetch('http://175.178.44.121/v1/workflows/run', {
+        var headers = { 'Content-Type': 'application/json' };
+        headers['X-CSRF-TOKEN'] = getCsrfToken();
+        fetch(API_STREAM_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': 'Bearer app-jUCEC5JnAZuyB1Yy0KFnCGSG',
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 inputs: { query: query },
                 response_mode: 'streaming',
