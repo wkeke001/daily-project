@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="ctx" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_parameterName" th:content="${_csrf.parameterName}">
+    <title>每日随想 - Lingke</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 960px; margin: 0 auto; padding: 20px; background: #f0f2f5; color: #333; }
+        .nav { display: flex; gap: 16px; margin-bottom: 24px; padding: 12px 16px; background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .nav a { text-decoration: none; color: #666; font-size: 14px; padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+        .nav a:hover { background: #f0f0f0; }
+        .nav a.active { color: #4a90d9; font-weight: 600; background: #e8f2fc; }
+        .date-bar { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px; padding: 16px; background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .date-bar a { text-decoration: none; color: #666; font-size: 20px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; }
+        .date-bar a:hover { background: #f0f0f0; color: #333; }
+        .date-text { font-size: 18px; font-weight: 600; color: #333; }
+        .date-today-tag { font-size: 12px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+        .btn-today { font-size: 13px; padding: 6px 14px; background: #4a90d9; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+        .btn-today:hover { background: #3a7bc8; }
+        .add-note-form { margin-bottom: 24px; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .add-note-form textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; outline: none; transition: border-color 0.2s; }
+        .add-note-form textarea:focus { border-color: #4a90d9; box-shadow: 0 2px 8px rgba(74,144,217,0.15); }
+        .add-note-form button { margin-top: 10px; padding: 8px 20px; background: #4a90d9; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .add-note-form button:hover { background: #3a7bc8; }
+        .note-list { display: flex; flex-direction: column; gap: 12px; }
+        .note-card { background: white; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-left: 4px solid #4a90d9; }
+        .note-content { font-size: 14px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; color: #333; }
+        .note-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
+        .note-time { font-size: 12px; color: #999; }
+        .note-actions { display: flex; gap: 6px; }
+        .note-actions form { display: inline; }
+        .btn-sm { padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .btn-sm-edit { background: #e3f2fd; color: #1565c0; }
+        .btn-sm-delete { background: #ffebee; color: #c62828; }
+        .btn-sm-edit:hover { background: #bbdefb; }
+        .btn-sm-delete:hover { background: #ffcdd2; }
+        .empty-hint { text-align: center; color: #bbb; font-size: 14px; padding: 40px 0; }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .nav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            .date-bar { flex-wrap: wrap; gap: 10px; padding: 12px; }
+            .date-text { font-size: 16px; }
+            .add-note-form { padding: 14px; }
+            .note-card { padding: 12px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a th:href="@{/}">今日清单</a>
+        <a th:href="@{/cards}">密码管理</a>
+        <a th:href="@{/notes}" class="active">每日随想</a>
+        <span style="margin-left:auto;font-size:13px;color:#666;display:flex;align-items:center;gap:8px;">
+            <span sec:authentication="name"></span>
+            <form th:action="@{/logout}" method="post" style="display:inline;margin:0;">
+                <button type="submit" style="padding:4px 10px;background:#ffebee;color:#c62828;border:none;border-radius:4px;cursor:pointer;font-size:12px;">退出</button>
+            </form>
+        </span>
+    </nav>
+
+    <div class="date-bar">
+        <a th:href="@{/notes(date=${prevDate})}">&#9664;</a>
+        <span class="date-text">
+            <span th:text="${#temporals.format(currentDate, 'yyyy年M月d日')}"></span>
+            <span class="date-today-tag" th:if="${currentDate.equals(today)}">今天</span>
+        </span>
+        <a th:href="@{/notes(date=${nextDate})}">&#9654;</a>
+        <a class="btn-today" th:href="@{/notes}" th:unless="${currentDate.equals(today)}">今天</a>
+    </div>
+
+    <div class="add-note-form">
+        <form th:action="@{/notes/add}" method="post">
+            <input type="hidden" name="noteDate" th:value="${currentDate}">
+            <textarea name="content" placeholder="写下你此刻的想法..." required></textarea>
+            <button type="submit">记录</button>
+        </form>
+    </div>
+
+    <div class="note-list">
+        <div th:if="${notes.isEmpty()}" class="empty-hint">今天还没有随想，写下第一条吧</div>
+        <div class="note-card" th:each="note : ${notes}">
+            <div class="note-content" th:text="${note.content}"></div>
+            <div class="note-meta">
+                <span class="note-time" th:text="${#temporals.format(note.createdAt, 'HH:mm')}"></span>
+                <div class="note-actions">
+                    <button class="btn-sm btn-sm-edit" onclick="editNote(this)" th:data-id="${note.id}" th:data-content="${note.content}">编辑</button>
+                    <form th:action="@{/notes/delete/{id}(id=${note.id})}" method="post">
+                        <input type="hidden" name="date" th:value="${currentDate}">
+                        <button class="btn-sm btn-sm-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function editNote(btn) {
+        var id = btn.getAttribute('data-id');
+        var content = btn.getAttribute('data-content') || '';
+        var card = btn.closest('.note-card');
+        var ctx = (document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
+        var csrfToken = document.querySelector('meta[name=_csrf]').content;
+        var csrfParam = document.querySelector('meta[name=_csrf_parameterName]').content;
+        var dateInput = document.querySelector('input[name=noteDate]');
+        var date = dateInput ? dateInput.value : '';
+        card.innerHTML = '<form action="' + ctx + '/notes/update/' + id + '" method="post">'
+            + '<input type="hidden" name="' + csrfParam + '" value="' + csrfToken + '">'
+            + '<input type="hidden" name="date" value="' + date + '">'
+            + '<textarea name="content" style="width:100%;min-height:80px;padding:10px;border:1px solid #4a90d9;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;outline:none;">' + content.replace(/</g,'&lt;') + '</textarea>'
+            + '<div style="margin-top:8px;display:flex;gap:6px;">'
+            + '<button type="submit" class="btn-sm btn-sm-edit">保存</button>'
+            + '<button type="button" class="btn-sm btn-sm-delete" onclick="location.reload()">取消</button>'
+            + '</div></form>';
+    }
+    </script>
+    <script th:src="@{/ai-chat.js}"></script>
+</body>
+</html>

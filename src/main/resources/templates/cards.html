@@ -60,6 +60,7 @@
         .btn-edit { background: #e3f2fd; color: #1565c0; }
         .edit-row td { background: #fafafa; }
         .edit-row input { padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 100%; }
+        .expand-textarea { width: 100%; min-height: 60px; padding: 8px 12px; border: 1px solid #4a90d9; border-radius: 6px; font-size: 13px; font-family: inherit; resize: none; outline: none; box-shadow: 0 2px 8px rgba(74,144,217,0.15); overflow: hidden; }
         .edit-row .item-actions { gap: 4px; }
         .btn-save { background: #e8f5e9; color: #2e7d32; }
         .add-item-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
@@ -280,6 +281,45 @@
 
         tip.addEventListener('mouseenter', function() { clearTimeout(hideTimer); });
         tip.addEventListener('mouseleave', hideTip);
+    })();
+
+    (function() {
+        document.addEventListener('focusin', function(e) {
+            var input = e.target;
+            if (input.tagName !== 'INPUT' || input.type !== 'text') return;
+            if (input.type === 'hidden') return;
+            var textarea = document.createElement('textarea');
+            textarea.className = 'expand-textarea';
+            textarea.name = input.name;
+            textarea.value = input.value;
+            if (input.required) textarea.required = true;
+            if (input.placeholder) textarea.placeholder = input.placeholder;
+            textarea.style.width = '100%';
+            input.style.display = 'none';
+            input.parentNode.insertBefore(textarea, input.nextSibling);
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(60, textarea.scrollHeight) + 'px';
+            textarea.focus();
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.max(60, this.scrollHeight) + 'px';
+                input.value = this.value;
+            });
+            textarea.addEventListener('blur', function() {
+                input.value = this.value;
+                input.style.display = '';
+                this.remove();
+            });
+            textarea.addEventListener('keydown', function(ev) {
+                if (ev.key === 'Enter' && !ev.shiftKey) {
+                    ev.preventDefault();
+                    input.value = this.value;
+                    input.style.display = '';
+                    this.remove();
+                    input.closest('form').submit();
+                }
+            });
+        });
     })();
     </script>
     <script th:src="@{/ai-chat.js}"></script>
