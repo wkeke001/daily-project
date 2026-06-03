@@ -39,6 +39,13 @@
         .btn-sm-edit:hover { background: #bbdefb; }
         .btn-sm-delete:hover { background: #ffcdd2; }
         .empty-hint { text-align: center; color: #bbb; font-size: 14px; padding: 40px 0; }
+        .date-section { margin-bottom: 28px; }
+        .date-header { font-size: 16px; font-weight: 600; color: #555; margin-bottom: 12px; padding: 10px 16px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #4a90d9; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; }
+        .date-header .today-mark { font-size: 12px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+        .date-header .toggle-icon { font-size: 12px; color: #999; transition: transform 0.2s; }
+        .date-header .toggle-icon.collapsed { transform: rotate(-90deg); }
+        .date-section .date-content { transition: all 0.2s ease; }
+        .date-section .date-content.hidden { display: none; }
         @media (max-width: 600px) {
             body { padding: 12px; }
             .nav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
@@ -63,50 +70,62 @@
     </nav>
 
     <div class="date-bar">
-        <a th:href="@{/notes(date=${prevDate})}">&#9664;</a>
-        <span class="date-text">
-            <span th:text="${#temporals.format(currentDate, 'yyyy年M月d日')}"></span>
-            <span class="date-today-tag" th:if="${currentDate.equals(today)}">今天</span>
-        </span>
-        <a th:href="@{/notes(date=${nextDate})}">&#9654;</a>
-        <a class="btn-today" th:href="@{/notes}" th:unless="${currentDate.equals(today)}">今天</a>
+        <span class="date-text">每日随想</span>
     </div>
 
     <div class="add-note-form">
         <form th:action="@{/notes/add}" method="post">
-            <input type="hidden" name="noteDate" th:value="${currentDate}">
+            <input type="hidden" name="noteDate" th:value="${#temporals.format(today, 'yyyy-MM-dd')}">
             <textarea name="content" placeholder="写下你此刻的想法..." required></textarea>
             <button type="submit">记录</button>
         </form>
     </div>
 
-    <div class="note-list">
-        <div th:if="${notes.isEmpty()}" class="empty-hint">今天还没有随想，写下第一条吧</div>
-        <div class="note-card" th:each="note : ${notes}">
-            <div class="note-content" th:text="${note.content}"></div>
-            <div class="note-meta">
-                <span class="note-time" th:text="${#temporals.format(note.createdAt, 'HH:mm')}"></span>
-                <div class="note-actions">
-                    <button class="btn-sm btn-sm-edit" onclick="editNote(this)" th:data-id="${note.id}" th:data-content="${note.content}">编辑</button>
-                    <form th:action="@{/notes/delete/{id}(id=${note.id})}" method="post">
-                        <input type="hidden" name="date" th:value="${currentDate}">
-                        <button class="btn-sm btn-sm-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
-                    </form>
+    <div th:if="${dateNotes.isEmpty()}" class="empty-hint">还没有随想，写下第一条吧</div>
+
+    <div th:each="dateEntry : ${dateNotes}" class="date-section">
+        <div class="date-header" onclick="toggleDateSection(this)">
+            <span>
+                <span th:text="${#temporals.format(dateEntry.key, 'yyyy年M月d日')}"></span>
+                <span class="today-mark" th:if="${dateEntry.key.equals(today)}">今天</span>
+            </span>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="date-content">
+        <div class="note-list">
+            <div class="note-card" th:each="note : ${dateEntry.value}">
+                <div class="note-content" th:text="${note.content}"></div>
+                <div class="note-meta">
+                    <span class="note-time" th:text="${#temporals.format(note.createdAt, 'HH:mm')}"></span>
+                    <div class="note-actions">
+                        <button class="btn-sm btn-sm-edit" onclick="editNote(this)" th:data-id="${note.id}" th:data-content="${note.content}" th:data-date="${dateEntry.key}">编辑</button>
+                        <form th:action="@{/notes/delete/{id}(id=${note.id})}" method="post">
+                            <input type="hidden" name="date" th:value="${dateEntry.key}">
+                            <button class="btn-sm btn-sm-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                        </form>
+                    </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 
     <script>
+    function toggleDateSection(header) {
+        var content = header.nextElementSibling;
+        var icon = header.querySelector('.toggle-icon');
+        content.classList.toggle('hidden');
+        icon.classList.toggle('collapsed');
+    }
+
     function editNote(btn) {
         var id = btn.getAttribute('data-id');
         var content = btn.getAttribute('data-content') || '';
+        var date = btn.getAttribute('data-date') || '';
         var card = btn.closest('.note-card');
         var ctx = (document.querySelector('meta[name=ctx]').content || '').replace(/\/$/, '');
         var csrfToken = document.querySelector('meta[name=_csrf]').content;
         var csrfParam = document.querySelector('meta[name=_csrf_parameterName]').content;
-        var dateInput = document.querySelector('input[name=noteDate]');
-        var date = dateInput ? dateInput.value : '';
         card.innerHTML = '<form action="' + ctx + '/notes/update/' + id + '" method="post">'
             + '<input type="hidden" name="' + csrfParam + '" value="' + csrfToken + '">'
             + '<input type="hidden" name="date" value="' + date + '">'

@@ -1,11 +1,10 @@
 param(
-    [string]$ProjectPath = "D:\java\lingke\lingke-todo",
+    [string]$ProjectPath = "D:\project\daily-project",
     [string]$ServerUser = "ubuntu",
     [string]$ServerHost = "175.178.44.121",
     [string]$RemoteDir = "/home/www/lingke-todo/app",
     [string]$JarName = "lingke-todo.jar",
-    [string]$Profile = "prod",
-    [string]$Password = "keke211314.."
+    [string]$Profile = "prod"
 )
 
 $Server = "$ServerUser@$ServerHost"
@@ -59,31 +58,25 @@ if ($null -eq $JarFile) {
 
 Write-Host "Found: $($JarFile.FullName)" -ForegroundColor Green
 
-Write-Host "`n[3/6] Creating remote dir..." -ForegroundColor Cyan
+Write-Host "`n[3/6] Creating remote dir & stopping service..." -ForegroundColor Cyan
 
-plink -batch -pw $Password $Server "mkdir -p $RemoteDir"
+ssh $Server "mkdir -p $RemoteDir && sudo systemctl stop lingke-todo 2>/dev/null; sleep 2"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "SSH connection failed" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "`n[4/6] Stopping remote service..." -ForegroundColor Cyan
+Write-Host "`n[4/6] Uploading jar & starting service..." -ForegroundColor Cyan
 
-plink -batch -pw $Password $Server "sudo systemctl stop lingke-todo 2>/dev/null; sleep 2"
-
-Write-Host "`n[5/6] Uploading jar..." -ForegroundColor Cyan
-
-pscp -pw $Password $JarFile.FullName "${Server}:$RemoteDir/$JarName"
+scp $JarFile.FullName "${Server}:$RemoteDir/$JarName"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Upload failed" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "`n[6/6] Starting remote service..." -ForegroundColor Cyan
-
-plink -batch -pw $Password $Server "sudo systemctl start lingke-todo"
+ssh $Server "sudo systemctl start lingke-todo"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Start failed, check manually" -ForegroundColor Yellow

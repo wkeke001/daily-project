@@ -18,4 +18,6 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
     List<Todo> findByDueDateAndCategoryIdAndUserIdOrderByCreatedAtAsc(LocalDate dueDate, Long categoryId, Long userId);
 
     Optional<Todo> findByIdAndUserId(Long id, Long userId);
+
+    List<Todo> findByUserIdOrderByDueDateDescCreatedAtAsc(Long userId);
 }

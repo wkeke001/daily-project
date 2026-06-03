@@ -1,6 +1,9 @@
 package com.lingke.todo.controller;
 
+import com.lingke.todo.entity.CategoryTemplate;
 import com.lingke.todo.entity.TodoCategory;
+import com.lingke.todo.repository.CategoryTemplateRepository;
+import com.lingke.todo.security.SecurityUtil;
 import com.lingke.todo.service.TodoService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -16,28 +19,52 @@ import java.util.Map;
 public class TodoController {
 
     private final TodoService todoService;
+    private final CategoryTemplateRepository templateRepository;
 
-    public TodoController(TodoService todoService) {
+    public TodoController(TodoService todoService, CategoryTemplateRepository templateRepository) {
         this.todoService = todoService;
+        this.templateRepository = templateRepository;
     }
 
     @GetMapping("/")
-    public String index(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                        Model model) {
-        LocalDate currentDate = (date != null) ? date : LocalDate.now();
+    public String index(Model model) {
+        LocalDate today = LocalDate.now();
         List<TodoCategory> categories = todoService.findAllCategories();
+        Map<LocalDate, List<com.lingke.todo.entity.Todo>> dateTodos = todoService.findAllGroupedByDate();
 
-        Map<TodoCategory, List<com.lingke.todo.entity.Todo>> categoryTodos = new LinkedHashMap<>();
+        // 今天：显示所有分类（即使为空），方便添加
+        Map<TodoCategory, List<com.lingke.todo.entity.Todo>> todayCatMap = new LinkedHashMap<>();
+        List<com.lingke.todo.entity.Todo> todayTodos = dateTodos.getOrDefault(today, List.of());
         for (TodoCategory cat : categories) {
-            categoryTodos.put(cat, todoService.findByDateAndCategory(currentDate, cat.getId()));
+            List<com.lingke.todo.entity.Todo> filtered = todayTodos.stream()
+                    .filter(t -> t.getCategory() != null && t.getCategory().getId().equals(cat.getId()))
+                    .collect(java.util.stream.Collectors.toList());
+            todayCatMap.put(cat, filtered);
         }
 
-        model.addAttribute("currentDate", currentDate);
-        model.addAttribute("today", LocalDate.now());
-        model.addAttribute("prevDate", currentDate.minusDays(1));
-        model.addAttribute("nextDate", currentDate.plusDays(1));
+        // 历史日期：只显示有内容的分类
+        Map<LocalDate, Map<TodoCategory, List<com.lingke.todo.entity.Todo>>> dateGrouped = new LinkedHashMap<>();
+        for (Map.Entry<LocalDate, List<com.lingke.todo.entity.Todo>> entry : dateTodos.entrySet()) {
+            if (entry.getKey().equals(today)) continue;
+            Map<TodoCategory, List<com.lingke.todo.entity.Todo>> catMap = new LinkedHashMap<>();
+            for (TodoCategory cat : categories) {
+                List<com.lingke.todo.entity.Todo> filtered = entry.getValue().stream()
+                        .filter(t -> t.getCategory() != null && t.getCategory().getId().equals(cat.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+                if (!filtered.isEmpty()) {
+                    catMap.put(cat, filtered);
+                }
+            }
+            if (!catMap.isEmpty()) {
+                dateGrouped.put(entry.getKey(), catMap);
+            }
+        }
+
+        model.addAttribute("today", today);
         model.addAttribute("categories", categories);
-        model.addAttribute("categoryTodos", categoryTodos);
+        model.addAttribute("todayCatMap", todayCatMap);
+        model.addAttribute("dateGrouped", dateGrouped);
+        model.addAttribute("categoryTemplates", templateRepository.findAllByUserIdOrderByCreatedAtAsc(SecurityUtil.getCurrentUserId()));
         return "index";
     }
 
@@ -47,41 +74,45 @@ public class TodoController {
                       @RequestParam Long categoryId,
                       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate) {
         todoService.add(title, remark, categoryId, dueDate);
-        return "redirect:/?date=" + dueDate;
+        return "redirect:/";
     }
 
     @PostMapping("/update/{id}")
     public String update(@PathVariable Long id,
                          @RequestParam String title,
                          @RequestParam(required = false) String remark,
-                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         todoService.update(id, title, remark);
-        return "redirect:/?date=" + date;
+        return "redirect:/";
     }
 
     @PostMapping("/toggle/{id}")
     public String toggle(@PathVariable Long id,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         todoService.toggleComplete(id);
-        LocalDate redirectDate = (date != null) ? date : LocalDate.now();
-        return "redirect:/?date=" + redirectDate;
+        return "redirect:/";
     }
 
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable Long id,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         todoService.delete(id);
-        LocalDate redirectDate = (date != null) ? date : LocalDate.now();
-        return "redirect:/?date=" + redirectDate;
+        return "redirect:/";
     }
 
     @PostMapping("/categories/add")
     public String addCategory(@RequestParam String name,
                               @RequestParam(required = false) String color,
                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        Long userId = SecurityUtil.getCurrentUserId();
         todoService.addCategory(name, color);
-        LocalDate redirectDate = (date != null) ? date : LocalDate.now();
-        return "redirect:/?date=" + redirectDate;
+        if (!templateRepository.existsByNameAndUserId(name, userId)) {
+            CategoryTemplate tpl = new CategoryTemplate();
+            tpl.setName(name);
+            tpl.setUserId(userId);
+            templateRepository.save(tpl);
+        }
+        return "redirect:/";
     }
 
     @PostMapping("/categories/update/{id}")
@@ -90,15 +121,32 @@ public class TodoController {
                                  @RequestParam(required = false) String color,
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         todoService.updateCategory(id, name, color);
-        LocalDate redirectDate = (date != null) ? date : LocalDate.now();
-        return "redirect:/?date=" + redirectDate;
+        return "redirect:/";
     }
 
     @PostMapping("/categories/delete/{id}")
     public String deleteCategory(@PathVariable Long id,
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         todoService.deleteCategory(id);
-        LocalDate redirectDate = (date != null) ? date : LocalDate.now();
-        return "redirect:/?date=" + redirectDate;
+        return "redirect:/";
+    }
+
+    @PostMapping("/categories/templates/add")
+    public String addTemplate(@RequestParam String name) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        if (!templateRepository.existsByNameAndUserId(name, userId)) {
+            CategoryTemplate tpl = new CategoryTemplate();
+            tpl.setName(name);
+            tpl.setUserId(userId);
+            templateRepository.save(tpl);
+        }
+        return "redirect:/";
+    }
+
+    @PostMapping("/categories/templates/delete/{id}")
+    public String deleteTemplate(@PathVariable Long id) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        templateRepository.findByIdAndUserId(id, userId).ifPresent(templateRepository::delete);
+        return "redirect:/";
     }
 }

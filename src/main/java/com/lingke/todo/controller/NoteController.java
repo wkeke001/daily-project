@@ -9,7 +9,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/notes")
@@ -22,16 +25,16 @@ public class NoteController {
     }
 
     @GetMapping
-    public String index(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                        Model model) {
+    public String index(Model model) {
         Long userId = SecurityUtil.getCurrentUserId();
-        LocalDate currentDate = (date != null) ? date : LocalDate.now();
-        List<Note> notes = noteRepository.findByUserIdAndNoteDateOrderByCreatedAtDesc(userId, currentDate);
-        model.addAttribute("notes", notes);
-        model.addAttribute("currentDate", currentDate);
+        List<Note> allNotes = noteRepository.findByUserIdOrderByNoteDateDescCreatedAtDesc(userId);
+        Map<LocalDate, List<Note>> dateNotes = allNotes.stream().collect(Collectors.groupingBy(
+                Note::getNoteDate,
+                LinkedHashMap::new,
+                Collectors.toList()
+        ));
+        model.addAttribute("dateNotes", dateNotes);
         model.addAttribute("today", LocalDate.now());
-        model.addAttribute("prevDate", currentDate.minusDays(1));
-        model.addAttribute("nextDate", currentDate.plusDays(1));
         return "notes";
     }
 
@@ -44,19 +47,19 @@ public class NoteController {
         note.setNoteDate(noteDate);
         note.setUserId(userId);
         noteRepository.save(note);
-        return "redirect:/notes?date=" + noteDate;
+        return "redirect:/notes";
     }
 
     @PostMapping("/update/{id}")
     public String update(@PathVariable Long id,
                          @RequestParam String content,
-                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         Long userId = SecurityUtil.getCurrentUserId();
         Note note = noteRepository.findById(id).orElseThrow();
         if (!note.getUserId().equals(userId)) throw new IllegalStateException("No permission");
         note.setContent(content);
         noteRepository.save(note);
-        return "redirect:/notes?date=" + date;
+        return "redirect:/notes";
     }
 
     @PostMapping("/delete/{id}")
@@ -66,7 +69,6 @@ public class NoteController {
         Note note = noteRepository.findById(id).orElseThrow();
         if (!note.getUserId().equals(userId)) throw new IllegalStateException("No permission");
         noteRepository.delete(note);
-        LocalDate redirectDate = (date != null) ? date : LocalDate.now();
-        return "redirect:/notes?date=" + redirectDate;
+        return "redirect:/notes";
     }
 }

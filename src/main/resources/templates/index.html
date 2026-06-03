@@ -23,6 +23,14 @@
         .btn-today { font-size: 13px; padding: 6px 14px; background: #4a90d9; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; transition: all 0.2s; }
         .btn-today:hover { background: #3a7bc8; }
 
+        .date-section { margin-bottom: 28px; }
+        .date-header { font-size: 16px; font-weight: 600; color: #555; margin-bottom: 12px; padding: 10px 16px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #4a90d9; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; }
+        .date-header .today-mark { font-size: 12px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+        .date-header .toggle-icon { font-size: 12px; color: #999; transition: transform 0.2s; }
+        .date-header .toggle-icon.collapsed { transform: rotate(-90deg); }
+        .date-section .date-content { transition: all 0.2s ease; }
+        .date-section .date-content.hidden { display: none; }
+
         .add-category-bar { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; }
         .add-category-bar input[type="text"] { padding: 8px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; flex: 1; max-width: 200px; }
         .add-category-bar select { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
@@ -110,17 +118,17 @@
     </nav>
 
     <div class="date-bar">
-        <a th:href="@{/(date=${prevDate})}">&#9664;</a>
-        <span class="date-text">
-            <span th:text="${#temporals.format(currentDate, 'yyyy年M月d日')}"></span>
-            <span class="date-today-tag" th:if="${currentDate.equals(today)}">今天</span>
-        </span>
-        <a th:href="@{/(date=${nextDate})}">&#9654;</a>
-        <a class="btn-today" th:href="@{/}" th:unless="${currentDate.equals(today)}">今天</a>
+        <span class="date-text">今日清单</span>
     </div>
 
-    <form class="add-category-bar" th:action="@{/categories/add}" method="post">
-        <input type="text" name="name" placeholder="新建分类" required>
+    <form class="add-category-bar" th:action="@{/categories/add}" method="post" id="addCategoryForm">
+        <input type="hidden" name="name" id="categoryNameHidden">
+        <select id="categoryNameSelect" onchange="onCategorySelectChange(this)">
+            <option value="">-- 选择分类 --</option>
+            <option th:each="tpl : ${categoryTemplates}" th:value="${tpl.name}" th:text="${tpl.name}"></option>
+            <option value="__custom__">自定义...</option>
+        </select>
+        <input type="text" id="categoryNameCustom" placeholder="输入自定义名称" style="display:none;">
         <select name="color">
             <option value="#4a90d9">蓝色</option>
             <option value="#6c5ce7">紫色</option>
@@ -129,59 +137,166 @@
             <option value="#fd79a8">粉色</option>
             <option value="#636e72">灰色</option>
         </select>
-        <input type="hidden" name="date" th:value="${currentDate}">
+        <input type="hidden" name="date" th:value="${today}">
         <button type="submit">+ 新建分类</button>
+        <button type="button" class="btn-sm btn-sm-edit" onclick="toggleTemplateManager()" style="margin-left:4px;">管理</button>
     </form>
 
-    <div class="card-grid">
-        <div class="card" th:each="entry : ${categoryTodos}" th:style="'border-top-color:' + ${entry.key.color != null ? entry.key.color : '#4a90d9'}">
-            <div class="card-header">
-                <span class="card-name" th:text="${entry.key.name}"></span>
-                <div class="card-header-actions">
-                    <form th:action="@{/categories/update/{id}(id=${entry.key.id})}" method="post" class="edit-inline">
-                        <input type="text" name="name" th:value="${entry.key.name}" required>
-                        <input type="hidden" name="date" th:value="${currentDate}">
-                        <button class="btn-sm btn-sm-edit" type="submit">改名</button>
-                    </form>
-                    <form th:action="@{/categories/delete/{id}(id=${entry.key.id})}" method="post">
-                        <input type="hidden" name="date" th:value="${currentDate}">
-                        <button class="btn-sm btn-sm-delete" type="submit" onclick="return confirm('删除分类及其所有待办？')">删除</button>
-                    </form>
-                </div>
-            </div>
-            <div class="card-body">
-                <div th:if="${entry.value.isEmpty()}" class="empty-card">暂无待办</div>
-                <div th:each="todo : ${entry.value}" th:classappend="${todo.completed} ? 'todo-item completed' : 'todo-item'" th:title="'创建于 ' + ${#temporals.format(todo.createdAt, 'yyyy-MM-dd HH:mm:ss')}">
-                    <div class="todo-main">
-                        <form class="checkbox-form" th:action="@{/toggle/{id}(id=${todo.id})}" method="post">
-                            <input type="hidden" name="date" th:value="${currentDate}">
-                            <button type="submit" th:classappend="${todo.completed} ? 'checkbox-btn checked' : 'checkbox-btn'"></button>
-                        </form>
-                        <span class="todo-title" th:text="${todo.title}"></span>
-                        <div class="todo-actions">
-                            <button class="btn-xs btn-xs-edit" onclick="editTodo(this)" th:data-id="${todo.id}" th:data-title="${todo.title}" th:data-remark="${todo.remark}">编辑</button>
-                            <form th:action="@{/delete/{id}(id=${todo.id})}" method="post" style="display:inline">
-                                <input type="hidden" name="date" th:value="${currentDate}">
-                                <button class="btn-xs btn-xs-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="todo-remark" th:if="${todo.remark != null and !todo.remark.isEmpty()}" th:text="${todo.remark}" th:data-full="${todo.remark}"></div>
-                </div>
-                <form class="add-todo-form" th:action="@{/add}" method="post">
-                    <input type="hidden" name="categoryId" th:value="${entry.key.id}">
-                    <input type="hidden" name="dueDate" th:value="${currentDate}">
-                    <input type="text" name="title" placeholder="添加待办..." required>
-                    <input type="text" name="remark" placeholder="备注（可选）">
-                    <button type="submit">添加</button>
+    <div id="templateManager" style="display:none;margin-bottom:20px;padding:12px 16px;background:white;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#555;">分类名称管理</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+            <span th:each="tpl : ${categoryTemplates}" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#f0f2f5;border-radius:4px;font-size:13px;">
+                <span th:text="${tpl.name}"></span>
+                <form th:action="@{/categories/templates/delete/{id}(id=${tpl.id})}" method="post" style="display:inline;margin:0;">
+                    <button type="submit" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:14px;padding:0 2px;" onclick="return confirm('删除此模板？')">&times;</button>
                 </form>
+            </span>
+            <span th:if="${categoryTemplates.isEmpty()}" style="color:#bbb;font-size:13px;">暂无模板，新建分类时会自动添加</span>
+        </div>
+        <form th:action="@{/categories/templates/add}" method="post" style="display:flex;gap:6px;">
+            <input type="text" name="name" placeholder="添加新模板名称" required style="padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;flex:1;">
+            <button type="submit" style="padding:6px 12px;background:#4a90d9;color:white;border:none;border-radius:4px;font-size:13px;cursor:pointer;">添加</button>
+        </form>
+    </div>
+
+    <!-- 今天：显示所有分类，方便填写 -->
+    <div class="date-section">
+        <div class="date-header" onclick="toggleDateSection(this)">
+            <span>
+                <span th:text="${#temporals.format(today, 'yyyy年M月d日')}"></span>
+                <span class="today-mark">今天</span>
+            </span>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="date-content">
+        <div class="card-grid">
+            <div class="card" th:each="entry : ${todayCatMap}" th:style="'border-top-color:' + ${entry.key.color != null ? entry.key.color : '#4a90d9'}">
+                <div class="card-header">
+                    <span class="card-name" th:text="${entry.key.name}"></span>
+                    <div class="card-header-actions">
+                        <form th:action="@{/categories/update/{id}(id=${entry.key.id})}" method="post" class="edit-inline">
+                            <input type="text" name="name" th:value="${entry.key.name}" required>
+                            <input type="hidden" name="date" th:value="${today}">
+                            <button class="btn-sm btn-sm-edit" type="submit">改名</button>
+                        </form>
+                        <form th:action="@{/categories/delete/{id}(id=${entry.key.id})}" method="post">
+                            <input type="hidden" name="date" th:value="${today}">
+                            <button class="btn-sm btn-sm-delete" type="submit" onclick="return confirm('删除分类及其所有待办？')">删除</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div th:if="${entry.value.isEmpty()}" class="empty-card">暂无待办</div>
+                    <div th:each="todo : ${entry.value}" th:classappend="${todo.completed} ? 'todo-item completed' : 'todo-item'" th:title="'创建于 ' + ${#temporals.format(todo.createdAt, 'yyyy-MM-dd HH:mm:ss')}">
+                        <div class="todo-main">
+                            <form class="checkbox-form" th:action="@{/toggle/{id}(id=${todo.id})}" method="post">
+                                <input type="hidden" name="date" th:value="${today}">
+                                <button type="submit" th:classappend="${todo.completed} ? 'checkbox-btn checked' : 'checkbox-btn'"></button>
+                            </form>
+                            <span class="todo-title" th:text="${todo.title}"></span>
+                            <div class="todo-actions">
+                                <button class="btn-xs btn-xs-edit" onclick="editTodo(this)" th:data-id="${todo.id}" th:data-title="${todo.title}" th:data-remark="${todo.remark}">编辑</button>
+                                <form th:action="@{/delete/{id}(id=${todo.id})}" method="post" style="display:inline">
+                                    <input type="hidden" name="date" th:value="${today}">
+                                    <button class="btn-xs btn-xs-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="todo-remark" th:if="${todo.remark != null and !todo.remark.isEmpty()}" th:text="${todo.remark}" th:data-full="${todo.remark}"></div>
+                    </div>
+                    <form class="add-todo-form" th:action="@{/add}" method="post">
+                        <input type="hidden" name="categoryId" th:value="${entry.key.id}">
+                        <input type="hidden" name="dueDate" th:value="${today}">
+                        <input type="text" name="title" placeholder="添加待办..." required>
+                        <input type="text" name="remark" placeholder="备注（可选）">
+                        <button type="submit">添加</button>
+                    </form>
+                </div>
             </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- 历史日期：只显示有内容的分类 -->
+    <div th:if="${dateGrouped.isEmpty() and todayCatMap.isEmpty()}" style="text-align:center;color:#bbb;font-size:14px;padding:40px 0;">暂无待办事项</div>
+
+    <div th:each="dateEntry : ${dateGrouped}" class="date-section">
+        <div class="date-header" onclick="toggleDateSection(this)">
+            <span>
+                <span th:text="${#temporals.format(dateEntry.key, 'yyyy年M月d日')}"></span>
+            </span>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="date-content">
+        <div class="card-grid">
+            <div class="card" th:each="entry : ${dateEntry.value}" th:style="'border-top-color:' + ${entry.key.color != null ? entry.key.color : '#4a90d9'}">
+                <div class="card-header">
+                    <span class="card-name" th:text="${entry.key.name}"></span>
+                </div>
+                <div class="card-body">
+                    <div th:each="todo : ${entry.value}" th:classappend="${todo.completed} ? 'todo-item completed' : 'todo-item'" th:title="'创建于 ' + ${#temporals.format(todo.createdAt, 'yyyy-MM-dd HH:mm:ss')}">
+                        <div class="todo-main">
+                            <form class="checkbox-form" th:action="@{/toggle/{id}(id=${todo.id})}" method="post">
+                                <input type="hidden" name="date" th:value="${dateEntry.key}">
+                                <button type="submit" th:classappend="${todo.completed} ? 'checkbox-btn checked' : 'checkbox-btn'"></button>
+                            </form>
+                            <span class="todo-title" th:text="${todo.title}"></span>
+                            <div class="todo-actions">
+                                <button class="btn-xs btn-xs-edit" onclick="editTodo(this)" th:data-id="${todo.id}" th:data-title="${todo.title}" th:data-remark="${todo.remark}">编辑</button>
+                                <form th:action="@{/delete/{id}(id=${todo.id})}" method="post" style="display:inline">
+                                    <input type="hidden" name="date" th:value="${dateEntry.key}">
+                                    <button class="btn-xs btn-xs-delete" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="todo-remark" th:if="${todo.remark != null and !todo.remark.isEmpty()}" th:text="${todo.remark}" th:data-full="${todo.remark}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 
     <div class="floating-tooltip" id="floatingTip"></div>
 
     <script>
+    function onCategorySelectChange(sel) {
+        var customInput = document.getElementById('categoryNameCustom');
+        if (sel.value === '__custom__') {
+            customInput.style.display = '';
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+            customInput.value = '';
+        }
+    }
+
+    function toggleTemplateManager() {
+        var mgr = document.getElementById('templateManager');
+        mgr.style.display = mgr.style.display === 'none' ? '' : 'none';
+    }
+
+    document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
+        var sel = document.getElementById('categoryNameSelect');
+        var customInput = document.getElementById('categoryNameCustom');
+        var hidden = document.getElementById('categoryNameHidden');
+        if (sel.value === '__custom__') {
+            if (!customInput.value.trim()) { e.preventDefault(); customInput.focus(); return; }
+            hidden.value = customInput.value.trim();
+        } else if (sel.value) {
+            hidden.value = sel.value;
+        } else {
+            e.preventDefault(); sel.focus(); return;
+        }
+    });
+
+    function toggleDateSection(header) {
+        var content = header.nextElementSibling;
+        var icon = header.querySelector('.toggle-icon');
+        content.classList.toggle('hidden');
+        icon.classList.toggle('collapsed');
+    }
+
     function editTodo(btn) {
         var id = btn.getAttribute('data-id');
         var title = btn.getAttribute('data-title');

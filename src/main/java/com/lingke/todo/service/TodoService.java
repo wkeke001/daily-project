@@ -8,7 +8,10 @@ import com.lingke.todo.security.SecurityUtil;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class TodoService {
@@ -19,6 +22,18 @@ public class TodoService {
     public TodoService(TodoRepository todoRepository, TodoCategoryRepository categoryRepository) {
         this.todoRepository = todoRepository;
         this.categoryRepository = categoryRepository;
+    }
+
+    public Map<LocalDate, List<Todo>> findAllGroupedByDate() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        List<Todo> all = todoRepository.findByUserIdOrderByDueDateDescCreatedAtAsc(userId);
+        return all.stream()
+                .filter(t -> t.getDueDate() != null)
+                .collect(Collectors.groupingBy(
+                        Todo::getDueDate,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
     }
 
     public List<Todo> findByDateAndCategory(LocalDate date, Long categoryId) {
